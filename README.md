@@ -15,9 +15,9 @@ A clean, native macOS app for live Singapore rain radar — built with SwiftUI a
 ## Features
 
 - **Live radar overlay** — 50 km rain radar from the Meteorological Service Singapore (MSS), refreshed every 5 minutes
-- **Time scrub** — slide through the last ~65 minutes of frames to see how rain is moving
-- **Smart frame detection** — uses the NEA Rain Area API to fetch exactly which frames are published; no guessing or probing required
-- **Instant scrubbing** — all frames are preloaded in the background so the slider responds immediately
+- **Time scrub** — slide through the last ~2 hours of frames to see how rain is moving
+- **Smart frame generation** — timestamps are computed locally using the same floor-to-5-minute logic as the official site; no API probing required
+- **Instant scrubbing** — all frames are preloaded concurrently in the background so the slider responds immediately
 - **Current location** — one tap centers the map on you (requires Location permission)
 - **Auto-refresh** — updates in the background every 5 minutes while the window is open
 - **Rain intensity legend** — colour scale matching the official NEA/MSS palette
@@ -49,7 +49,7 @@ A clean, native macOS app for live Singapore rain radar — built with SwiftUI a
 
 4. Press `⌘R` to build and run.
 
-> **Note:** The app requires the `com.apple.security.network.client` entitlement (already set in `SG Rain Map.entitlements`) to fetch radar images. No API key or account is needed — all data is publicly available from nea.gov.sg.
+> **Note:** The app requires the `com.apple.security.network.client` entitlement (already set in `SG Rain Map.entitlements`) to fetch radar images. No API key or account is needed — all data is publicly available from weather.gov.sg.
 
 ---
 
@@ -59,12 +59,12 @@ A clean, native macOS app for live Singapore rain radar — built with SwiftUI a
 SG Rain Map/
 ├── Models/
 │   ├── Constants.swift              Bounding box, defaults, shared constants
-│   ├── MapOverlay.swift           MKOverlay subclass for the radar PNG
-│   └── MapOverlayRenderer.swift   CGContext-based overlay renderer
+│   ├── RadarOverlay.swift           MKOverlay subclass for the radar PNG
+│   └── RadarOverlayRenderer.swift   CGContext-based overlay renderer
 ├── Services/
-│   └── MapService.swift           NEA API client, frame list, image fetch
+│   └── RadarService.swift           Frame timestamp generation and image fetching
 ├── ViewModels/
-│   ├── MapViewModel.swift         State, preloading, auto-refresh
+│   ├── RadarViewModel.swift         State, preloading, auto-refresh
 │   └── LocationManager.swift        CLLocationManager wrapper
 └── Views/
     ├── ContentView.swift             Main window layout
@@ -76,13 +76,13 @@ SG Rain Map/
 
 ## Data source
 
-Frame availability is determined via the **NEA Rain Area API**:
+Radar images are fetched directly from **weather.gov.sg**:
 
 ```
-GET https://www.nea.gov.sg/api/RainArea/GetRecentData/{unix_seconds}
+https://www.weather.gov.sg/files/rainarea/50km/v2/dpsri_70km_<timestamp>0000dBR.dpsri.png
 ```
 
-Returns a JSON array of `{ Url, DateTime, SortingTime }` objects — the exact set of frames currently published. Images are served from `nea.gov.sg`. Timestamps are in **Singapore Standard Time (SGT, UTC+8)**.
+Timestamps are generated locally by flooring the current time to the nearest 5-minute boundary — mirroring the logic used by the official MSS rain area page. The app generates the last 24 frames (covering ~2 hours). Timestamps are in **Singapore Standard Time (SGT, UTC+8)**.
 
 The radar bounding box coordinates (`1.156°N–1.475°N`, `103.565°E–104.130°E`) are derived from [cheeaun/rain-geojson-sg](https://github.com/cheeaun/rain-geojson-sg).
 
@@ -91,7 +91,7 @@ The radar bounding box coordinates (`1.156°N–1.475°N`, `103.565°E–104.130
 ## Privacy
 
 - **Location** — used only to center the map. Never stored or transmitted.
-- **Network** — only connects to `nea.gov.sg` to fetch publicly available radar data.
+- **Network** — only connects to `weather.gov.sg` to fetch publicly available radar data.
 - No analytics, no tracking, no accounts.
 
 ---
@@ -108,7 +108,7 @@ Pull requests are welcome. Please open an issue first for larger changes.
 
 ## Acknowledgements
 
-- [National Environment Agency (NEA)](https://www.nea.gov.sg/) — Rain Area API and radar data
+- [Meteorological Service Singapore (MSS)](https://www.weather.gov.sg/) — radar imagery
 - [cheeaun/rain-geojson-sg](https://github.com/cheeaun/rain-geojson-sg) — radar bounding box reference
 - Inspired by the official **MyENV** app (iOS/Android) by the National Environment Agency of Singapore
 
